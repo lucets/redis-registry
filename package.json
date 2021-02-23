@@ -1,0 +1,34 @@
+{
+  "name": "@lucets/redis-registry",
+  "version": "0.1.0",
+  "description": "Redis registry for @lucets/registry",
+  "main": "./dist/index.js",
+  "author": "Michiel van der Velde <michiel@michielvdvelde.nl>",
+  "homepage": "http://github.com/lucets/redis-registry",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucets/redis-registry.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "keywords": [
+    "luce",
+    "ws",
+    "websocket"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@lucets/registry": "^0.2.0",
+    "ioredis": "^4.22.0",
+    "lru-cache": "^6.0.0",
+    "redis-streams-manager": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/lru-cache": "^5.1.0",
+    "@types/ws": "^7.4.0"
+  }
+}
