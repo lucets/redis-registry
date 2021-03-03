@@ -2,12 +2,12 @@
 
 import WebSocket from 'ws'
 import { Registry, DefaultClientInfo, DefaultMessage, RegistryError } from '@lucets/registry'
-import { Redis } from 'ioredis'
+import IORedis, { Redis, RedisOptions } from 'ioredis'
 import LRUCache, { Options as LRUOptions } from 'lru-cache'
 import StreamManager, { StreamManagerOptions } from 'redis-streams-manager'
 
 export interface Options<TClientInfo> {
-  connection: Redis,
+  connection: Redis | RedisOptions,
   existsCache?: LRUOptions<string, boolean>,
   clientCache?: LRUOptions<string, TClientInfo>,
   streams?: StreamManagerOptions
@@ -38,8 +38,14 @@ export default class RedisRegistry<
   #clientCache: LRUCache<string, TClientInfo>
 
   public constructor (options: Options<TClientInfo>) {
-    this.#connection = options.connection
-    this.#streams = new StreamManager(options.connection.duplicate(), options.streams)
+    // @ts-ignore
+    if (typeof options.connection.duplicate === 'function') {
+      this.#connection = <Redis>options.connection
+    } else {
+      this.#connection = new IORedis(<RedisOptions>options.connection)
+    }
+
+    this.#streams = new StreamManager(this.#connection.duplicate(), options.streams)
     this.#existsCache = new LRUCache({
       max: 50,
       maxAge: 1000 * 60 * 5,
@@ -105,10 +111,7 @@ export default class RedisRegistry<
       createOn: new Date()
     }
 
-    await this.#connection.multi()
-      .rpush('clients', id)
-      .hmset(`clients:${id}`, <any>this.serialize(fullInfo))
-      .exec()
+    await this.#connection.hmset(`clients:${id}`, <any>this.serialize(fullInfo))
 
     this.#clientCache.set(id, fullInfo)
     return fullInfo
@@ -146,7 +149,6 @@ export default class RedisRegistry<
     }
 
     await this.#connection.multi()
-      .lrem('clients', 1, id)
       .del(`clients:${id}`)
       .del(`clients:${id}:messages`)
       .exec()
@@ -218,7 +220,6 @@ export default class RedisRegistry<
     await this.#connection.hmset(`clients:${id}`, <any>this.serialize(info))
   }
 
-  // @ts-ignore
   public async send (id: string, message: TMessage): Promise<void> {
     const info = await this.info(id)
 
